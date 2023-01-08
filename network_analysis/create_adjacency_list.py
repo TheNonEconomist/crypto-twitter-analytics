@@ -6,11 +6,6 @@ import logging
 import asyncio
 import argparse
 
-
-info_logger = logging.getLogger('info_logger')
-logging.basicConfig(filename='/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/CryptoTwitterNetwork_AdjacencyListGeneration.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-
-
 # Objective of the Script
 # 1) To Map out the Entirety of Crypto Twitter & Dump into adjacency list
 
