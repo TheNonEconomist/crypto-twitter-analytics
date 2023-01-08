@@ -41,7 +41,7 @@ def get_user_id_from_username(client, username: str) -> str:
     """
     return client.get_user(username=username).data.id
 
-def build_adjacency_list_from_id(client, to_search_ids: set, generation_limit: int) -> dict:
+def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, generation_limit: int) -> dict:
     """
     :param client twitter api client obj
     :param to_search_ids set of IDs to search for
@@ -147,7 +147,7 @@ def main(args):
             to_search_ids.add(get_user_id_from_username(client, username))
 
     # 2) Run the Adjacency list creation algorithm
-    res = build_adjacency_list_from_id(client, to_search_ids, generation_limit=2)
+    res = build_adjacency_list_from_id(info_logger, client, to_search_ids, generation_limit=2)
 
     # 3) Store the Adjancency List as a JSON File
     with open(args.results_path + 'CryptoTwitterNetwork.json', 'w') as fp:
@@ -169,16 +169,16 @@ if __name__ == "__main__":
     filepaths = parser.add_argument_group("filepaths")
     filepaths.add_argument(
         "-l", "--log_file_path", type=str, help="path under which to store the log file",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/logs/"
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/logs/"
     )
     filepaths.add_argument(
         "-u", "--root_node_usernames_path", type=str, help="path to text file containing root node usernames",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/root_node_usernames.txt",
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/root_node_usernames.txt",
     )
 
     filepaths.add_argument(
         "-r", "--results_path", type=str, help="where to store crypto network adjacency list as JSON",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/"
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/"
     )
     
     
