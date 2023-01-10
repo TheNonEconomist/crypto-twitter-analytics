@@ -12,8 +12,8 @@ assessing health of the Crypto Twitter, identifying where quality sources of inf
      i) Identify spheres of influence in Crypto Twitter (can be correlated with investment signals, industry shifts, etc...)
      ii) Detect echo chambers as indicators for reliabilities of certain source(s)
      iii) 
-2) Deploy some kind of tool that cusers can use to toggle through different types of analaysis on crypto twitter in some automated way
--> ie. "Show me from whom the most reliable sources of information comes from", "Show me how people have "
+2) Deploy a tool that users can use to toggle through different types of analaysis on crypto twitter in some automated way
+-> ie. "Show me from whom the most reliable sources of information comes from", "Show me who the thought leaders on transaction cost analysis are", "Show me what new trends unseen in both DeFi and traditional finance are", "Show me what paradigms from TradFi are latching on to DeFi", etc...
 
 3) Allow embedding of variety of NLP analytics techniques that can be plugged in to start building adjancecy matrices for variety of scores
 
