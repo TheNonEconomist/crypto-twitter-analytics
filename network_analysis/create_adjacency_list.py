@@ -7,9 +7,6 @@ import asyncio
 import argparse
 
 
-info_logger = logging.getLogger('info_logger')
-logging.basicConfig(filename='/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/CryptoTwitterNetwork_AdjacencyListGeneration.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-
 SEARCHED_IDS = set()
 
 # Objective of the Script
@@ -35,7 +32,7 @@ def get_user_id_from_username(client, username: str) -> str:
     """
     return client.get_user(username=username).data.id
 
-def build_adjacency_list_from_id(client, to_search_ids: set, generation_limit: int) -> dict:
+def build_adjacency_list_from_id(client, info_logger, to_search_ids: set, generation_limit: int) -> dict:
     """
     :param client twitter api client obj
     :param to_search_ids set of IDs to search for
@@ -145,7 +142,7 @@ def main(args):
             username = username.replace("\n", "")
             # 2) Run the Adjacency list creation algorithm
             root_id = get_user_id_from_username(client, username)
-            res = build_adjacency_list_from_id(client, {root_id}, generation_limit=generation_limit)
+            res = build_adjacency_list_from_id(client, info_logger, {root_id}, generation_limit=generation_limit)
             # 3) Store the Adjancency List as a JSON File
             with open(args.results_path + 'CryptoTwitterNetwork_rootID={}_generationLimit={}.json'.format(root_id, generation_limit), 'w') as fp:
                 json.dump(res, fp)
