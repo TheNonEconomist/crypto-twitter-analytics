@@ -6,6 +6,12 @@ import logging
 import asyncio
 import argparse
 
+
+info_logger = logging.getLogger('info_logger')
+logging.basicConfig(filename='/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/CryptoTwitterNetwork_AdjacencyListGeneration.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+
+SEARCHED_IDS = set()
+
 # Objective of the Script
 # 1) To Map out the Entirety of Crypto Twitter & Dump into adjacency list
 
@@ -22,18 +28,6 @@ import argparse
 # 1) HOW OFTEN TO UPDATE NETWORK STATUS? - at some cadence/real-time? (=update network graph functions needed)
 # 2) 
 
-# get accounts a particular user follows: 
-# 1) 
-
-# TODO: More features to add
-# 1) Additional Termination Rules - TAKING TOO LONG
-# -> How many children to traverse through before stopping?
-# ->        
-
-
-# 2) Asynchronous (Needed?)
-# -> Approximation
-
 def get_user_id_from_username(client, username: str) -> str:
     """
     :param client twitter api client obj
@@ -41,7 +35,7 @@ def get_user_id_from_username(client, username: str) -> str:
     """
     return client.get_user(username=username).data.id
 
-def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, generation_limit: int) -> dict:
+def build_adjacency_list_from_id(client, to_search_ids: set, generation_limit: int) -> dict:
     """
     :param client twitter api client obj
     :param to_search_ids set of IDs to search for
@@ -56,7 +50,7 @@ def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, genera
     # 1) 
 
     adjacency_list = dict()
-    searched_ids = set() # IDs that have been searched that no longer need to be traversed (termination condition for the network search)
+    local_searched_ids = set() # IDs that have been searched that no longer need to be traversed (termination condition for the network search)
 
     current_generation = 1
     generation_population = {
@@ -67,9 +61,9 @@ def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, genera
 
     while len(to_search_ids) > 0: # All the IDS to search have not yet been traversed
         start = time.time()
-        print("To Be Searched:", len(to_search_ids), "| Already Searched:", len(searched_ids))
+        print("To Be Searched:", len(to_search_ids), "| Already Searched:", len(local_searched_ids))
         info_logger.info('{} ids left to search'.format(len(to_search_ids)))
-        info_logger.info('{} ids have been searched so far'.format(len(searched_ids)))
+        info_logger.info('{} ids have been searched so far'.format(len(local_searched_ids)))
 
         id = to_search_ids.pop() # Search a particular ID
         info_logger.info('ID={} to be searched'.format(id))
@@ -103,12 +97,13 @@ def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, genera
                         "id": user_id, "username": username, "name": name
                     })
                     # If a completely new ID has been found (condition 1) then add it to the ids to be searched + generation limit hasn't been reached
-                    if user_id not in searched_ids and current_generation < generation_limit: 
+                    if user_id not in SEARCHED_IDS and current_generation < generation_limit: 
                         to_search_ids.add(user_id)
             except TypeError: # No data has been found = no more following
                 info_logger.info("ID = {} Took {} seconds to build adjacency list out of".format(id, time.time()-start))
                 page_token_repeated = True # I guess this is moot actually then 
-                searched_ids.add(id) # Add the ID to a set of searched IDs - termination condition
+                local_searched_ids.add(id) # Add the ID to a set of searched IDs - termination condition
+                SEARCHED_IDS.add(id) # Add the ID to a set of searched IDs - termination condition
 
             # Grab Next Page Token | If last page then exit & move on to the next ID
             try:
@@ -116,10 +111,11 @@ def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, genera
             except KeyError: # Condition 2: We've searched the node fully
                 info_logger.info("ID = {} Took {} seconds to build adjacency list out of".format(id, time.time()-start))
                 page_token_repeated = True # I guess this is moot actually then 
-                searched_ids.add(id) # Add the ID to a set of searched IDs - termination condition
+                local_searched_ids.add(id) # Add the ID to a set of searched IDs - termination condition
+                SEARCHED_IDS.add(id) # Add the ID to a set of searched IDs - termination condition
 
                 # every time we add, make sure we check the generation
-                if len(searched_ids) == calculate_cumulative_generation_population(current_generation, generation_population): # generation has been searched
+                if len(local_searched_ids) == calculate_cumulative_generation_population(current_generation, generation_population): # generation has been searched
                     current_generation += 1 # update to new generation
                     generation_population[current_generation] = len(to_search_ids) # the next generation is number of ids lef to be searched on the next gen
                     print("Next Generation")
@@ -129,6 +125,9 @@ def build_adjacency_list_from_id(info_logger, client, to_search_ids: set, genera
 
 
 def main(args):
+
+    generation_limit = 2 # TODO add as CLI arg
+
     # Initialize Logging
     info_logger = logging.getLogger('info_logger')
     logging.basicConfig(filename=args.log_file_path + 'CryptoTwitterNetwork_AdjacencyListGeneration.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -140,18 +139,16 @@ def main(args):
 
     # Run the Adjacency List Creation
     # 1) Retrieve set of Twitter IDs to search for, which correspond to "root node" usernames provided in an external text file
-    to_search_ids = set()
+
     with open(args.root_node_usernames_path, 'r') as f:
         for username in f.readlines():
             username = username.replace("\n", "")
-            to_search_ids.add(get_user_id_from_username(client, username))
-
-    # 2) Run the Adjacency list creation algorithm
-    res = build_adjacency_list_from_id(info_logger, client, to_search_ids, generation_limit=2)
-
-    # 3) Store the Adjancency List as a JSON File
-    with open(args.results_path + 'CryptoTwitterNetwork.json', 'w') as fp:
-        json.dump(res, fp)
+            # 2) Run the Adjacency list creation algorithm
+            root_id = get_user_id_from_username(client, username)
+            res = build_adjacency_list_from_id(client, {root_id}, generation_limit=generation_limit)
+            # 3) Store the Adjancency List as a JSON File
+            with open(args.results_path + 'CryptoTwitterNetwork_rootID={}_generationLimit={}.json'.format(root_id, generation_limit), 'w') as fp:
+                json.dump(res, fp)
 
 
 if __name__ == "__main__":
@@ -169,16 +166,16 @@ if __name__ == "__main__":
     filepaths = parser.add_argument_group("filepaths")
     filepaths.add_argument(
         "-l", "--log_file_path", type=str, help="path under which to store the log file",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/logs/"
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/logs/"
     )
     filepaths.add_argument(
         "-u", "--root_node_usernames_path", type=str, help="path to text file containing root node usernames",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/root_node_usernames.txt",
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/root_node_usernames.txt",
     )
 
     filepaths.add_argument(
         "-r", "--results_path", type=str, help="where to store crypto network adjacency list as JSON",
-        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analytics/network_analysis/"
+        default="/Users/keonshikkim/Documents/non-economist-dev/crypto-twitter-analysis/network_analysis/"
     )
     
     
